@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NashNova 内测邀请</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #060609; font-family: 'PingFang SC', 'DM Sans', sans-serif; }
+    input, button { font-family: inherit; }
+    input::placeholder { color: #4b5563; }
+    input:focus { border-color: rgba(245,158,11,0.5) !important; }
+    button:active { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhkxFjfZDuw3lojrAAn45BLH0z0vq-yOhGv4IaZLbI_hroc6_CQWveM2D-4gHIMAxL/exec";
+    const ADMIN_PASSWORD = "nashnova2024";
+
+    // ── Hidden iframe form submitter ──────────────────────────────────────────
+    function IframeSubmitter({ data }) {
+      const formRef = useRef(null);
+      useEffect(() => {
+        if (formRef.current) formRef.current.submit();
+      }, []);
+      return (
+        <div style={{ position: "fixed", width: 0, height: 0, overflow: "hidden", opacity: 0, pointerEvents: "none" }}>
+          <iframe name="gas-iframe" title="gas" />
+          <form ref={formRef} action={SCRIPT_URL} method="GET" target="gas-iframe">
+            {Object.entries(data).map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
+          </form>
+        </div>
+      );
+    }
+
+    // ── QR Code ───────────────────────────────────────────────────────────────
+    function QRCodeSVG({ size = 180 }) {
+      const cells = 21, c = size / cells;
+      const finder = (r, col) =>
+        r === 0 || r === 6 || col === 0 || col === 6 || (r >= 2 && r <= 4 && col >= 2 && col <= 4);
+      const isFinderArea = (r, col) =>
+        (r < 7 && col < 7) || (r < 7 && col >= 14) || (r >= 14 && col < 7);
+      const blocks = [];
+      for (let r = 0; r < cells; r++) {
+        for (let cc = 0; cc < cells; cc++) {
+          const dark = isFinderArea(r, cc)
+            ? finder(r >= 14 ? r - 14 : r, cc >= 14 ? cc - 14 : cc)
+            : ((r * 3 + cc * 7 + r * cc) % 5) < 2;
+          if (dark) blocks.push(<rect key={`${r}-${cc}`} x={cc * c} y={r * c} width={c} height={c} fill="#111" />);
+        }
+      }
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <rect width={size} height={size} fill="white" />
+          {blocks}
+        </svg>
+      );
+    }
+
+    // ── Icons (inline SVG) ────────────────────────────────────────────────────
+    const Icon = {
+      Apple: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06z"/><path d="M10 2c0 2.5 2 4 4 4"/></svg>,
+      Android: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="8" width="14" height="12" rx="2"/><path d="M15 8V6a3 3 0 0 0-6 0v2"/><line x1="12" y1="13" x2="12" y2="15"/></svg>,
+      ChevronRight: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+      Check: () => <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+      Shield: () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+      ArrowLeft: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+      Eye: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+      EyeOff: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+      Users: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      Copy: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+    };
+
+    // ── Admin Panel ───────────────────────────────────────────────────────────
+    function AdminPanel({ onBack }) {
+      const [authed, setAuthed] = useState(false);
+      const [pw, setPw] = useState("");
+      const [pwErr, setPwErr] = useState("");
+      const [showPw, setShowPw] = useState(false);
+      const [rows, setRows] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [fetchErr, setFetchErr] = useState("");
+      const [copied, setCopied] = useState(false);
+
+      const login = () => {
+        if (pw !== ADMIN_PASSWORD) { setPwErr("密码错误"); return; }
+        setAuthed(true);
+        setLoading(true);
+        fetch(SCRIPT_URL)
+          .then(r => r.json())
+          .then(data => { setRows(Array.isArray(data) ? data.slice(1) : []); setLoading(false); })
+          .catch(() => { setFetchErr("读取失败，请直接查看 Google Sheets"); setLoading(false); });
+      };
+
+      const copyAll = () => {
+        const text = rows.map(r => `${r.name}\t${r.email}`).join("\n");
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true); setTimeout(() => setCopied(false), 2000);
+        });
+      };
+
+      if (!authed) return (
+        <div style={S.adminWrap}>
+          <button onClick={onBack} style={S.backBtn}><Icon.ArrowLeft /> <span style={{marginLeft:4}}>返回</span></button>
+          <div style={S.adminCard}>
+            <Icon.Shield />
+            <h2 style={S.adminTitle}>内测后台</h2>
+            <p style={S.adminSub}>仅限内部人员访问</p>
+            <div style={S.pwRow}>
+              <input type={showPw ? "text" : "password"} placeholder="管理密码" value={pw}
+                onChange={e => { setPw(e.target.value); setPwErr(""); }}
+                onKeyDown={e => e.key === "Enter" && login()}
+                style={S.pwInput} />
+              <button onClick={() => setShowPw(v => !v)} style={S.eyeBtn}>
+                {showPw ? <Icon.EyeOff /> : <Icon.Eye />}
+              </button>
+            </div>
+            {pwErr && <p style={S.err}>{pwErr}</p>}
+            <button onClick={login} style={S.submitBtn}>进入后台</button>
+          </div>
+        </div>
+      );
+
+      return (
+        <div style={S.adminWrap}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:24, flexWrap:"wrap" }}>
+            <button onClick={onBack} style={S.backBtn}><Icon.ArrowLeft /><span style={{marginLeft:4}}>返回</span></button>
+            <h2 style={{ ...S.adminTitle, margin:0, fontSize:18 }}>iOS 内测名单</h2>
+            {!loading && <span style={S.badge}><Icon.Users /> <span style={{marginLeft:4}}>{rows.length} 人</span></span>}
+            <button onClick={copyAll} style={{ ...S.outlineBtn, marginLeft:"auto" }}>
+              <Icon.Copy /> <span style={{marginLeft:4}}>{copied ? "已复制" : "复制全部"}</span>
+            </button>
+          </div>
+          {loading && <p style={{ color:"#6b7280" }}>读取中...</p>}
+          {fetchErr && <p style={{ color:"#ef4444", fontSize:13 }}>{fetchErr}</p>}
+          {!loading && !fetchErr && rows.length === 0 && (
+            <p style={{ color:"#6b7280", textAlign:"center", marginTop:60 }}>暂无注册记录</p>
+          )}
+          {rows.length > 0 && (
+            <div style={S.emailList}>
+              {rows.map((r, i) => (
+                <div key={i} style={S.emailRow}>
+                  <div style={S.emailName}>{r.name}</div>
+                  <div style={{ fontSize:13, color:"#9ca3af" }}>{r.email}</div>
+                  <div style={S.emailTs}>{r.ts}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p style={{ color:"#4b5563", fontSize:12, marginTop:20, textAlign:"center" }}>
+            数据实时同步自 Google Sheets
+          </p>
+        </div>
+      );
+    }
+
+    // ── Main App ──────────────────────────────────────────────────────────────
+    function App() {
+      const [page, setPage] = useState("home");
+      const [name, setName] = useState("");
+      const [email, setEmail] = useState("");
+      const [nameErr, setNameErr] = useState("");
+      const [emailErr, setEmailErr] = useState("");
+      const [submitting, setSubmitting] = useState(false);
+      const [submitData, setSubmitData] = useState(null);
+      const [clicks, setClicks] = useState(0);
+      const clickTimer = useRef(null);
+
+      const logoClick = () => {
+        const n = clicks + 1; setClicks(n);
+        if (n >= 5) { setPage("admin"); setClicks(0); return; }
+        clearTimeout(clickTimer.current);
+        clickTimer.current = setTimeout(() => setClicks(0), 2000);
+      };
+
+      const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      const reset = () => { setName(""); setEmail(""); setNameErr(""); setEmailErr(""); };
+
+      const submit = () => {
+        let ok = true;
+        if (!name.trim()) { setNameErr("请输入你的姓名"); ok = false; }
+        if (!validEmail(email)) { setEmailErr("请输入有效的邮箱地址"); ok = false; }
+        if (!ok) return;
+        setSubmitting(true);
+        setSubmitData({
+          name: name.trim(),
+          email: email.toLowerCase().trim(),
+          ts: new Date().toISOString(),
+          platform: "iOS",
+        });
+        setTimeout(() => {
+          setSubmitting(false);
+          setSubmitData(null);
+          setPage("success");
+        }, 1500);
+      };
+
+      if (page === "admin") return <AdminPanel onBack={() => { setPage("home"); reset(); }} />;
+
+      return (
+        <div style={S.root}>
+          {submitData && <IframeSubmitter data={submitData} />}
+          <div style={S.grid} />
+          <div style={S.glow} />
+          <div style={S.wrap}>
+
+            <div style={S.logo} onClick={logoClick}>
+              <div style={S.logoMark}>N</div>
+              <span style={S.logoText}>NashNova</span>
+            </div>
+
+            {page === "home" && (
+              <div style={S.card}>
+                <div style={S.pill}>内部测试版</div>
+                <h1 style={S.h1}>加入内测计划</h1>
+                <p style={S.sub}>感谢你的参与！请选择你的设备类型以继续</p>
+                <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
+                  {[
+                    { label:"iOS", hint:"iPhone / iPad", icon:<Icon.Apple />, key:"ios" },
+                    { label:"Android", hint:"安卓手机", icon:<Icon.Android />, key:"android" },
+                  ].map(p => (
+                    <button key={p.key} style={S.platformBtn} onClick={() => setPage(p.key)}>
+                      <div style={S.pIcon}>{p.icon}</div>
+                      <div style={{ flex:1, textAlign:"left" }}>
+                        <div style={{ fontSize:15, fontWeight:600, color:"#fff" }}>{p.label}</div>
+                        <div style={{ fontSize:12, color:"#6b7280" }}>{p.hint}</div>
+                      </div>
+                      <Icon.ChevronRight />
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize:12, color:"#374151" }}>NashNova · CMCF Limited · 内部专用</p>
+              </div>
+            )}
+
+            {page === "ios" && (
+              <div style={S.card}>
+                <button style={S.backLink} onClick={() => { setPage("home"); reset(); }}>
+                  <Icon.ArrowLeft /><span style={{marginLeft:5}}>重新选择</span>
+                </button>
+                <div style={S.bigIcon}><Icon.Apple /></div>
+                <h1 style={S.h1}>iOS TestFlight 邀请</h1>
+                <p style={S.sub}>填写信息后，我们将通过 TestFlight 发送邀请链接</p>
+                <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10, marginBottom:14 }}>
+                  <div>
+                    <input type="text" placeholder="你的姓名" value={name}
+                      onChange={e => { setName(e.target.value); setNameErr(""); }}
+                      style={{ ...S.input, ...(nameErr ? { borderColor:"rgba(239,68,68,0.6)" } : {}) }} />
+                    {nameErr && <p style={S.err}>{nameErr}</p>}
+                  </div>
+                  <div>
+                    <input type="email" placeholder="Apple ID 绑定的邮箱" value={email}
+                      onChange={e => { setEmail(e.target.value); setEmailErr(""); }}
+                      onKeyDown={e => e.key === "Enter" && submit()}
+                      style={{ ...S.input, ...(emailErr ? { borderColor:"rgba(239,68,68,0.6)" } : {}) }} />
+                    {emailErr && <p style={S.err}>{emailErr}</p>}
+                  </div>
+                </div>
+                <button style={{ ...S.submitBtn, opacity: submitting ? 0.65 : 1 }} onClick={submit} disabled={submitting}>
+                  {submitting ? "提交中..." : "提交申请"}
+                </button>
+                <p style={S.hint}>邮箱仅用于 TestFlight 邀请，不会用于其他用途</p>
+
+                <div style={{ width:"100%", marginTop:8 }}>
+                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:12, textAlign:"left" }}>📋 收到申请后的流程</div>
+                  {[
+                    {
+                      step:"01",
+                      title:"查收验证邮件",
+                      desc:"在邮箱内查收邀请邮件，确认后联系小八或楚波完成验证"
+                    },
+                    {
+                      step:"02",
+                      title:"兑换 TestFlight 邀请",
+                      desc:"验证通过后，在邮箱查收 TestFlight 内测邀请，复制兑换码在 TestFlight App 中兑换即可"
+                    },
+                  ].map((item, i) => (
+                    <div key={i} style={{ display:"flex", gap:12, marginBottom:10, textAlign:"left" }}>
+                      <div style={{ width:28, height:28, borderRadius:8, background:"rgba(245,158,11,0.12)", border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#f59e0b", flexShrink:0 }}>{item.step}</div>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:600, color:"#e5e7eb", marginBottom:3 }}>{item.title}</div>
+                        <div style={{ fontSize:12, color:"#6b7280", lineHeight:1.6 }}>{item.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop:10, padding:"10px 14px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, fontSize:12, color:"#6b7280", textAlign:"left", lineHeight:1.6 }}>
+                    💡 如未下载 TestFlight，请先在 App Store 搜索「TestFlight」下载
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {page === "android" && (
+              <div style={S.card}>
+                <button style={S.backLink} onClick={() => setPage("home")}>
+                  <Icon.ArrowLeft /><span style={{marginLeft:5}}>重新选择</span>
+                </button>
+                <div style={S.bigIcon}><Icon.Android /></div>
+                <h1 style={S.h1}>Android 内测下载</h1>
+                <p style={S.sub}>使用手机扫描下方二维码，直接下载安装包</p>
+                <div style={S.qrBox}>
+                  <img
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=172x172&data=https://drive.google.com/uc?export=download%26id=1pQZuS6fG6vf1WvrKQF-I617hr207WGrC"
+                    width="172" height="172"
+                    style={{ borderRadius:8, display:"block" }}
+                    alt="Android APK 下载二维码"
+                  />
+                  <p style={{ fontSize:12, color:"#6b7280", margin:0 }}>扫码下载 · Android APK</p>
+                </div>
+                <p style={S.hint}>如无法安装，请在手机设置中允许「未知来源」应用</p>
+              </div>
+            )}
+
+            {page === "success" && (
+              <div style={S.card}>
+                <div style={S.successIcon}><Icon.Check /></div>
+                <h1 style={S.h1}>申请已收到！</h1>
+                <p style={S.sub}>
+                  Hi <strong style={{ color:"#f59e0b" }}>{name}</strong>，我们将通过 TestFlight 向{" "}
+                  <strong style={{ color:"#f59e0b" }}>{email}</strong> 发送邀请，请注意查收
+                </p>
+                <button style={S.submitBtn} onClick={() => { setPage("home"); reset(); }}>
+                  返回首页
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    // ── Styles ────────────────────────────────────────────────────────────────
+    const S = {
+      root: { minHeight:"100vh", background:"#060609", display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" },
+      grid: { position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(245,158,11,0.045) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,0.045) 1px,transparent 1px)", backgroundSize:"40px 40px", pointerEvents:"none" },
+      glow: { position:"absolute", top:"15%", left:"50%", transform:"translateX(-50%)", width:560, height:280, background:"radial-gradient(ellipse,rgba(245,158,11,0.09) 0%,transparent 68%)", pointerEvents:"none" },
+      wrap: { width:"100%", maxWidth:460, padding:"24px 16px", position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center" },
+      logo: { display:"flex", alignItems:"center", gap:9, marginBottom:28, cursor:"pointer", userSelect:"none" },
+      logoMark: { width:34, height:34, borderRadius:9, background:"linear-gradient(135deg,#f59e0b,#d97706)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:17, color:"#000" },
+      logoText: { fontSize:19, fontWeight:700, color:"#fff", letterSpacing:"-0.4px" },
+      card: { width:"100%", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:20, padding:"32px 28px", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" },
+      pill: { background:"rgba(245,158,11,0.12)", color:"#f59e0b", border:"1px solid rgba(245,158,11,0.25)", borderRadius:100, padding:"4px 13px", fontSize:11, fontWeight:600, letterSpacing:"0.5px", marginBottom:18 },
+      h1: { fontSize:24, fontWeight:700, color:"#fff", margin:"0 0 10px", letterSpacing:"-0.4px" },
+      sub: { fontSize:13, color:"#9ca3af", lineHeight:1.65, margin:"0 0 24px" },
+      platformBtn: { width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:13, padding:"15px 18px", display:"flex", alignItems:"center", gap:13, cursor:"pointer", color:"#fff" },
+      pIcon: { width:44, height:44, borderRadius:11, background:"rgba(255,255,255,0.07)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", flexShrink:0 },
+      backLink: { display:"flex", alignItems:"center", background:"none", border:"none", color:"#6b7280", cursor:"pointer", fontSize:13, marginBottom:22, alignSelf:"flex-start", padding:0 },
+      bigIcon: { width:60, height:60, borderRadius:15, background:"rgba(255,255,255,0.07)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", marginBottom:18 },
+      input: { width:"100%", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:11, padding:"13px 15px", color:"#fff", fontSize:15, outline:"none", boxSizing:"border-box" },
+      err: { color:"#ef4444", fontSize:12, marginTop:6, textAlign:"left" },
+      submitBtn: { width:"100%", background:"linear-gradient(135deg,#f59e0b,#d97706)", border:"none", borderRadius:11, padding:"14px", color:"#000", fontSize:15, fontWeight:700, cursor:"pointer", marginBottom:12 },
+      hint: { fontSize:12, color:"#4b5563", lineHeight:1.5 },
+      qrBox: { background:"white", borderRadius:14, padding:18, marginBottom:18, display:"flex", flexDirection:"column", alignItems:"center", gap:10 },
+      successIcon: { width:68, height:68, borderRadius:"50%", background:"rgba(34,197,94,0.12)", border:"1px solid rgba(34,197,94,0.3)", display:"flex", alignItems:"center", justifyContent:"center", color:"#22c55e", marginBottom:22 },
+      adminWrap: { minHeight:"100vh", background:"#060609", padding:"28px 18px", maxWidth:600, margin:"0 auto" },
+      adminCard: { background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:18, padding:"36px 28px", display:"flex", flexDirection:"column", alignItems:"center", maxWidth:360, margin:"50px auto 0", gap:6 },
+      adminTitle: { fontSize:20, fontWeight:700, color:"#fff", margin:"8px 0 4px" },
+      adminSub: { fontSize:13, color:"#6b7280", marginBottom:20 },
+      pwRow: { width:"100%", display:"flex", position:"relative", marginBottom:6 },
+      pwInput: { width:"100%", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:10, padding:"12px 42px 12px 14px", color:"#fff", fontSize:14, outline:"none", boxSizing:"border-box" },
+      eyeBtn: { position:"absolute", right:11, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"#6b7280", cursor:"pointer", padding:4 },
+      backBtn: { display:"inline-flex", alignItems:"center", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"7px 13px", color:"#9ca3af", cursor:"pointer", fontSize:13, marginBottom:20 },
+      badge: { display:"inline-flex", alignItems:"center", gap:5, background:"rgba(245,158,11,0.12)", color:"#f59e0b", border:"1px solid rgba(245,158,11,0.25)", borderRadius:100, padding:"3px 11px", fontSize:12, fontWeight:600 },
+      outlineBtn: { display:"inline-flex", alignItems:"center", gap:5, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"7px 13px", color:"#d1d5db", cursor:"pointer", fontSize:13 },
+      emailList: { width:"100%", display:"flex", flexDirection:"column", gap:8 },
+      emailRow: { background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"13px 15px" },
+      emailName: { fontSize:14, color:"#e5e7eb", fontWeight:600, marginBottom:2 },
+      emailTs: { fontSize:11, color:"#6b7280", marginTop:3 },
+    };
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
